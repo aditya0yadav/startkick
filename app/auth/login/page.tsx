@@ -7,21 +7,45 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Lock, Mail } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // TODO: Implement actual login logic
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      login(data.token);
       router.push("/dashboard");
-    }, 1000);
+    } catch (err: any) {
+      console.error("Login error", err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +55,8 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold">Welcome back to StartKick</h1>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
+
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -42,6 +68,8 @@ export default function LoginPage() {
                 type="email"
                 placeholder="Enter your email"
                 className="pl-10"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -56,6 +84,8 @@ export default function LoginPage() {
                 type="password"
                 placeholder="Enter your password"
                 className="pl-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>

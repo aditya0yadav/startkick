@@ -8,20 +8,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { User, Mail, Lock } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { login } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // TODO: Implement actual registration logic
-    setTimeout(() => {
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      // Use the login method from AuthContext
+      login(data.token);
       router.push("/dashboard");
-    }, 1000);
+    } catch (err: any) {
+      console.error("Registration error", err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +64,8 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold">Create your StartKick account</h1>
           <p className="text-gray-600 mt-2">Join the AI-powered job platform</p>
         </div>
+
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -42,6 +77,8 @@ export default function RegisterPage() {
                 type="text"
                 placeholder="Enter your full name"
                 className="pl-10"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
@@ -56,6 +93,8 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="Enter your email"
                 className="pl-10"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -70,6 +109,8 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Create a password"
                 className="pl-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
@@ -84,6 +125,8 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Confirm your password"
                 className="pl-10"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
             </div>

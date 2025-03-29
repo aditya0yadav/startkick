@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  jobTitle      String?
+  location      String?
+  profileImage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          String    @default("USER")
+  
+  resume        Resume?
+  preferences   JobPreference?
+  applications  JobApplication[]
+  
+  educations    Education[]
+  workExperience WorkExperience[]
+}
+
+model Education {
+  id          String   @id @default(cuid())
+  userId      String
+  school      String
+  degree      String
+  fieldOfStudy String?
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WorkExperience {
+  id          String   @id @default(cuid())
+  userId      String
+  companyName String
+  jobTitle    String
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  industry    String?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+  
+model Resume {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  filePath        String
+  parsedSkills    String?
+  parsedExperience String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model JobPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  preferredIndustries String?
+  desiredLocations   String?
+  minSalary         Int?
+  jobTypes          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id              String    @id @default(cuid())
+  title           String
+  company         String
+  description     String
+  location        String
+  salaryMin       Int?
+  salaryMax       Int?
+  requiredSkills  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  applications    JobApplication[]
+}
+
+model JobApplication {
+  id          String    @id @default(cuid())
+  userId      String
+  jobId       String
+  status      String    @default("PENDING")
+  appliedDate DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+}
