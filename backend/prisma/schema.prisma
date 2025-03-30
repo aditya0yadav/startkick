@@ -68,6 +68,11 @@ model Resume {
   filePath        String
   parsedSkills    String?
   parsedExperience String?
+  resumeData      String?  // JSON string containing structured resume data
+  educationJson   String?  // JSON array for education history
+  workExperienceJson String? // JSON array for work experience
+  skillsJson      String?  // JSON array for skills
+  projectsJson    String?  // JSON array for projects
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)

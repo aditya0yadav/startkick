@@ -5,6 +5,7 @@ import { userProfileSchema } from "../validators/user.validator";
 import { UPLOAD_DIR } from "../config/constants";
 import fs from "fs";
 import path from "path";
+import {ResumeExtractText} from "../function/resume.function" ;
 
 // Type definitions for Educations and WorkExperience
 type EducationInput = {
@@ -213,22 +214,25 @@ export const updateProfile = async (req: Request, res: Response) => {
 
 export const uploadResume = async (req: Request, res: Response) => {
   try {
-    console.log(req.user.id);
+    console.log(req.file) ;
+    const filePath: string = req.file?.path || ""; 
+    console.log(await ResumeExtractText(filePath)) ;
 
     const userId = req.user.id;
     const file = req.file;
+    
 
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-
-    // Create uploads directory if it doesn't exist
+   
     const uploadsDir = path.join(UPLOAD_DIR, "resumes");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Check if user already has a resume and delete it
+    
+
     const existingResume = await prisma.resume.findUnique({
       where: { userId },
     });
@@ -244,12 +248,11 @@ export const uploadResume = async (req: Request, res: Response) => {
       });
     }
 
-    // Create new resume record
+   
     const resume = await prisma.resume.create({
       data: {
         userId,
         filePath: path.join("uploads", "resumes", file.filename),
-        // TODO: Implement resume parsing logic
         parsedSkills: "",
         parsedExperience: "",
       },
