@@ -116,3 +116,29 @@ model JobApplication {
 
   @@unique([userId, jobId])
 }
+model StructuredResume {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  name              String
+  email             String?
+  phone             String?
+  linkedin          String?
+  website           String?
+  role              String
+  summary           String?
+  skills            String?
+  
+  workExperienceJson String?
+  educationJson      String?
+  projectsJson       String?
+  certificationsJson String?
+  publicationsJson   String?
+  volunteerJson      String?
+  awardsJson        String?
+  languagesJson      String?
+  interestsJson      String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

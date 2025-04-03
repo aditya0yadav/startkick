@@ -3,7 +3,8 @@ import {
   getProfile,
   updateProfile,
   uploadResume,
-  getResume
+  getResume,
+  uploadResumeAndJob
 } from '../controllers/user.controller';
 import multer from 'multer';
 
@@ -32,5 +33,6 @@ router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.post('/resume', upload.single('resume'), uploadResume);
 router.get('/resume', getResume);
+router.post('/res', upload.single('resume'), uploadResumeAndJob);
 
 export { router as userRouter };

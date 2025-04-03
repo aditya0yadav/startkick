@@ -50,11 +50,12 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const validatedData = loginSchema.parse(req.body);
+    console.log(validatedData);
 
     const user = await prisma.user.findUnique({
       where: { email: validatedData.email }
     });
-
+    console.log(user)
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -70,6 +71,8 @@ export const login = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    console.log(token)
 
     res.json({
       user: {

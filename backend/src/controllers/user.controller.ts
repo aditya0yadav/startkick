@@ -5,35 +5,29 @@ import { userProfileSchema } from "../validators/user.validator";
 import { UPLOAD_DIR } from "../config/constants";
 import fs from "fs";
 import path from "path";
-import {ResumeExtractText} from "../function/resume.function" ;
+import { ResumeExtractTextWithoutModel } from "../function/resume.function";
+import { calculateSimilarity, analyzeResume } from "../ml/processing";
 
-// Type definitions for Educations and WorkExperience
-type EducationInput = {
+interface EducationInput {
   id?: string;
   school: string;
   degree: string;
   fieldOfStudy?: string;
   startDate?: string | Date | null;
   endDate?: string | Date | null;
-};
+}
 
-type WorkExperienceInput = {
+interface WorkExperienceInput {
   id?: string;
   companyName: string;
   jobTitle: string;
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   description?: string;
-};
+}
 
 export const getProfile = async (req: Request, res: Response) => {
   try {
-    console.log("Request user:", req.user);
-
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
     const userId = req.user.id;
     console.log("Fetching profile for userId:", userId);
 
@@ -130,9 +124,8 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (educations && educations.length > 0) {
       await prisma.education.deleteMany({ where: { userId } });
       
-      // Then create new educations, filtering out invalid fields
       await prisma.education.createMany({
-        data: (educations as EducationInput[]).map(edu => ({
+        data: (educations as EducationInput[]).map((edu: EducationInput) => ({
           school: edu.school,
           degree: edu.degree,
           fieldOfStudy: edu.fieldOfStudy,
@@ -143,18 +136,15 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     }
 
-    // Update work experience if provided
     if (workExperience && workExperience.length > 0) {
-      // First, delete existing work experiences
       await prisma.workExperience.deleteMany({ where: { userId } });
       
-      // Filter out work experiences with missing required fields
       const validWorkExperiences = (workExperience as WorkExperienceInput[])
-        .filter(work => work.companyName && work.jobTitle);
+        .filter((work: WorkExperienceInput) => work.companyName && work.jobTitle);
       
       if (validWorkExperiences.length > 0) {
         await prisma.workExperience.createMany({
-          data: validWorkExperiences.map(work => ({
+          data: validWorkExperiences.map((work: WorkExperienceInput) => ({
             companyName: work.companyName,
             jobTitle: work.jobTitle,
             startDate: work.startDate ? new Date(work.startDate) : null,
@@ -214,13 +204,9 @@ export const updateProfile = async (req: Request, res: Response) => {
 
 export const uploadResume = async (req: Request, res: Response) => {
   try {
-    console.log(req.file) ;
-    const filePath: string = req.file?.path || ""; 
-    console.log(await ResumeExtractText(filePath)) ;
-
+    console.log(req.file, req.user);
     const userId = req.user.id;
     const file = req.file;
-    
 
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });
@@ -230,8 +216,6 @@ export const uploadResume = async (req: Request, res: Response) => {
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
-
-    
 
     const existingResume = await prisma.resume.findUnique({
       where: { userId },
@@ -248,7 +232,6 @@ export const uploadResume = async (req: Request, res: Response) => {
       });
     }
 
-   
     const resume = await prisma.resume.create({
       data: {
         userId,
@@ -287,3 +270,37 @@ export const getResume = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to fetch resume", error });
   }
 };
+
+export const uploadResumeAndJob = async (req: Request, res: Response) => {
+  try {
+    const jobDescription = req.body.jobDescription;
+    
+    if (!jobDescription) {
+      return res.status(400).json({ message: "Job description is required" });
+    }
+    
+    const file = req.file;
+    const pathmain = file?.path;
+
+    if (!file || !pathmain) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const textContent = await ResumeExtractTextWithoutModel(pathmain);
+   
+    const uploadsDir = path.join(UPLOAD_DIR, "resumes");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const rate = await analyzeResume(jobDescription, textContent);
+    console.log(rate);
+    res.status(201).json(rate);
+  } catch (error) {
+    console.error("Resume upload error:", error);
+    res.status(500).json({ 
+      message: "Failed to upload resume", 
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
